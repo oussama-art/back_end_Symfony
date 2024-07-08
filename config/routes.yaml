@@ -17,3 +17,7 @@ token_payload:
     controller: App\Controller\TokenController::getTokenPayload
     methods: GET
 
+api_token_check:
+    path: /api/token/check/{id}
+    controller: App\Controller\TokenController::getTokens
+    methods: GET

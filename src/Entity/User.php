@@ -8,6 +8,7 @@ use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
+use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: UserRepository::class)]
 #[ORM\Table(name: "`user`")]
@@ -19,10 +20,14 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     private ?int $id = null;
 
     #[ORM\Column(length: 180, unique: true)]
-    private ?string $email = null;
+    #[Assert\NotBlank(message: "Email should not be blank.")]
+    #[Assert\Email(message: "The email '{{ value }}' is not a valid email.")]
+
+    private ?string $email ;
 
     #[ORM\Column(length: 180, unique: true)]
-    private ?string $username = null;
+    #[Assert\NotBlank(message: "Username should not be blank.")]
+    private ?string $username ;
 
     #[ORM\Column]
     private array $roles = [];
@@ -31,7 +36,8 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
      * @var string The hashed password
      */
     #[ORM\Column]
-    private ?string $password = null;
+    #[Assert\NotBlank(message: "Password should not be blank.")]
+    private ?string $password ;
 
     #[ORM\OneToMany(targetEntity: Token::class, mappedBy: "user", orphanRemoval: true)]
     private Collection $tokens;
