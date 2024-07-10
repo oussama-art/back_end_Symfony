@@ -26,5 +26,11 @@ services:
         tags:
             - { name: kernel.event_listener, event: lexik_jwt_authentication.on_jwt_invalid, method: onJWTInvalid }
             - { name: kernel.event_listener, event: lexik_jwt_authentication.on_jwt_decoded, method: onJWTDecoded }
+
+
+        # explicitly configure RiadService
+    App\Service\RiadService:
+        arguments:
+            $uploadDirectory: '%kernel.project_dir%/public/upload_directory'
     # add more service definitions when explicit configuration is needed
     # please note that last definitions always *replace* previous ones

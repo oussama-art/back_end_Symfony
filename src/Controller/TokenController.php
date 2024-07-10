@@ -8,10 +8,10 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Annotation\Route;
 
-#[Route('/api/token', name: 'api_token_')]
+#[Route('/api', name: 'api_token_')]
 class TokenController extends AbstractController
 {
-    #[Route('/check', name: 'token-expired', methods: ['GET'])]
+    #[Route('/check-token', name: 'token-expired', methods: ['GET'])]
     public function getTokens(Request $request, TokenRepository $tokenRepository): JsonResponse
     {
         $tokenValue = $request->headers->get('Authorization');

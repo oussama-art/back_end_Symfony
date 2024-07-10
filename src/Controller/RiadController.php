@@ -7,6 +7,7 @@ use App\Entity\Room;
 use Doctrine\Persistence\ManagerRegistry;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\File\Exception\FileException;
+use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
@@ -15,69 +16,59 @@ use Symfony\Component\Validator\Validator\ValidatorInterface;
 #[Route('/api', name: 'api_')]
 class RiadController extends AbstractController
 {
+    private $logger;
+
     #[Route('/addriad', name: 'add_riad', methods: ['POST'])]
     public function addRiad(ManagerRegistry $doctrine, Request $request, ValidatorInterface $validator): Response
     {
         $entityManager = $doctrine->getManager();
-        $data = json_decode($request->getContent(), true);
+        $data = $this->getRequestData($request);
 
-        if ($data === null) {
-            return $this->json(['error' => 'Invalid JSON data'], Response::HTTP_BAD_REQUEST);
-        }
+        $name = $data['name'] ?? null;
+        $description = $data['description'] ?? null;
+        $address = $data['address'] ?? null;
+        $city = $data['city'] ?? null;
+        $file = $data['imageFile'] ?? null;
+        dump($file);
 
-        // Handle Riad data
+
+
         $riad = new Riad();
-        $riad->setName($data['name'] ?? null);
-        $riad->setDescription($data['description'] ?? null);
-        $riad->setAddress($data['address'] ?? null);
+        $riad->setName($name);
+        $riad->setDescription($description);
+        $riad->setAddress($address);
+        $riad->setCity($city);
 
-        // Handle image file upload
-        $file = $request->files->get('imageFile');
         if ($file) {
             $uploadDirectory = $this->getParameter('upload_directory');
             $fileName = md5(uniqid()) . '.' . $file->guessExtension();
 
             try {
                 $file->move($uploadDirectory, $fileName);
-                $riad->setImagefile($fileName);
+                $riad->setImageFile($file);
+                $riad->setImageName($fileName);
+
+                // Log or display file details
+                $this->logFileDetails($file); // Example of logging file details
+
             } catch (FileException $e) {
-                return new Response('Failed to upload image', Response::HTTP_INTERNAL_SERVER_ERROR);
-            }
-        } else {
-            // Provide a default value if no image file is uploaded
-            $riad->setImagefile('default_image.jpg'); // Change this to an actual default image if needed
-        }
-
-        // Validate Riad entity
-        $errors = $validator->validate($riad);
-        if (count($errors) > 0) {
-            $errorMessages = [];
-            foreach ($errors as $error) {
-                $errorMessages[] = $error->getMessage();
-            }
-
-            return $this->json(['errors' => $errorMessages], Response::HTTP_BAD_REQUEST);
-        }
-
-        // Add rooms to Riad and persist each Room entity
-        if (isset($data['rooms']) && is_array($data['rooms'])) {
-            foreach ($data['rooms'] as $roomData) {
-                $room = new Room();
-                $room->setName($roomData['name'] ?? null);
-                $room->setDescription($roomData['description'] ?? null);
-                $room->setNbPersonne($roomData['nb_personne'] ?? null);
-                $room->setPrice($roomData['price'] ?? null);
-
-                $riad->addRoom($room);
-                $entityManager->persist($room); // Explicitly persist each Room entity
+                return $this->json(['error' => 'Failed to upload image'], Response::HTTP_INTERNAL_SERVER_ERROR);
             }
         }
 
-        // Persist Riad entity to database
         $entityManager->persist($riad);
         $entityManager->flush();
 
-        return $this->json(['status' => 'Riad and rooms created successfully!'], Response::HTTP_CREATED);
+        return $this->json(['status' => 'Riad added successfully!'], Response::HTTP_CREATED);
+    }
+    private function logFileDetails(UploadedFile $file): void
+    {
+        $originalName = $file->getClientOriginalName();
+        $fileSize = $file->getSize();
+        $mimeType = $file->getMimeType();
+
+        // Example: Log or display file details
+        $this->logger->info("Uploaded file details: Name - $originalName, Size - $fileSize bytes, Mime Type - $mimeType");
     }
 
     #[Route('/riad/{id}', name: 'delete_riad', methods: ['DELETE'])]
@@ -117,6 +108,7 @@ class RiadController extends AbstractController
         $riad->setName($data['name']);
         $riad->setDescription($data['description']);
         $riad->setAddress($data['address']);
+        $riad->setCity($data['city']);
 
         // Handle image file upload if provided
         $file = $request->files->get('imageFile');
@@ -148,6 +140,7 @@ class RiadController extends AbstractController
 
         return $this->json(['status' => 'Riad updated successfully!'], Response::HTTP_OK);
     }
+
     #[Route('/riad/{id}', name: 'get_riad', methods: ['GET'])]
     public function getRiad(ManagerRegistry $doctrine, int $id): Response
     {
@@ -165,6 +158,7 @@ class RiadController extends AbstractController
             'description' => $riad->getDescription(),
             'address' => $riad->getAddress(),
             'imagefile' => $riad->getImagefile(),
+            'city'=> $riad->getCity(),
             'rooms' => array_map(function($room) {
                 return [
                     'id' => $room->getId(),
@@ -178,4 +172,20 @@ class RiadController extends AbstractController
 
         return $this->json($response, Response::HTTP_OK);
     }
+    private function getRequestData(Request $request): array
+    {
+        $contentType = $request->getContentType();
+        $data = [];
+
+        if ($contentType === 'json') {
+            $data = json_decode($request->getContent(), true) ?? [];
+        } else {
+            $data = $request->request->all();
+        }
+
+        // Always get files separately
+        $files = $request->files->all();
+        return array_merge($data, $files);
+    }
+
 }

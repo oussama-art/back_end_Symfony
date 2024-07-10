@@ -1,0 +1,7 @@
+vich_uploader:
+    db_driver: orm # or mongodb or propel or phpcr
+    mappings:
+        riads:
+            uri_prefix: /uploads/images/riads
+            upload_destination: '%kernel.project_dir%/public/upload_directory'
+            namer: Vich\UploaderBundle\Naming\SmartUniqueNamer

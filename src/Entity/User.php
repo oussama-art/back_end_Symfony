@@ -6,9 +6,11 @@ use App\Repository\UserRepository;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
-use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Symfony\Component\Validator\Constraints as Assert;
+use Symfony\Component\Validator\Constraints\NotBlank;
+use Symfony\Component\Validator\Mapping\ClassMetadata;
+
 
 #[ORM\Entity(repositoryClass: UserRepository::class)]
 #[ORM\Table(name: "`user`")]
@@ -25,23 +27,29 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
 
     private ?string $email ;
 
-    #[ORM\Column(length: 180, unique: true)]
+    #[ORM\Column(length: 180, unique: false, nullable: false)]
     #[Assert\NotBlank(message: "Username should not be blank.")]
     private ?string $username ;
 
     #[ORM\Column]
+    #[Assert\NotBlank(message: "Role should not be blank.")]
     private array $roles = [];
 
     /**
      * @var string The hashed password
      */
-    #[ORM\Column]
+    #[ORM\Column(nullable: false)]
     #[Assert\NotBlank(message: "Password should not be blank.")]
     private ?string $password ;
 
     #[ORM\OneToMany(targetEntity: Token::class, mappedBy: "user", orphanRemoval: true)]
     private Collection $tokens;
 
+
+    public static function loadValidatorMetadata(ClassMetadata $metadata): void
+    {
+        $metadata->addPropertyConstraint('password', new NotBlank());
+    }
 
     public function getTokens(): Collection
     {
@@ -136,5 +144,6 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         // If you store any temporary, sensitive data on the user, clear it here
         // $this->plainPassword = null;
     }
+
 
 }
